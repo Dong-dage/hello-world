@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" 
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+	http://www.springframework.org/schema/context 
+	http://www.springframework.org/schema/context/spring-context-4.0.xsd
+	http://www.springframework.org/schema/mvc
+	http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
+	http://www.springframework.org/schema/tx
+	http://www.springframework.org/schema/tx/spring-tx-4.0.xsd	
+	http://www.springframework.org/schema/aop
+	http://www.springframework.org/schema/aop/spring-aop-4.0.xsd">
+
+    <context:component-scan base-package="com.want" />
+
+	
+	<bean id="propertyPlaceholderConfigurer"
+		class="org.jasypt.spring31.properties.EncryptablePropertyPlaceholderConfigurer">
+		<constructor-arg ref="configurationEncryptor" />
+		<property name="locations">
+			<list>
+				<value>classpath*:jdbc.properties</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="configurationEncryptor" class="org.jasypt.encryption.pbe.StandardPBEStringEncryptor">
+		<property name="config" ref="environmentVariablesConfiguration" />
+	</bean>
+
+	<bean id="environmentVariablesConfiguration"
+		class="org.jasypt.encryption.pbe.config.EnvironmentStringPBEConfig">
+		<property name="algorithm" value="PBEWithMD5AndDES" />
+		<property name="passwordEnvName" value="CAS_PBE_PASSWORD" />
+	</bean> 
+	
+	<bean id="WechatDataSource" class="org.apache.commons.dbcp2.BasicDataSource">
+		<property name="driverClassName"><value>${core.jdbc.driver}</value></property>
+		<property name="url"><value>${core.jdbc.jdbcurl}</value></property>
+		<property name="username"><value>${core.jdbc.username}</value></property>
+		<property name="password"><value>${core.jdbc.password}</value></property>
+		<property name="initialSize" value="2"/>
+		<property name="maxTotal" value="100"/>
+		<property name="maxIdle" value="5"/>
+		<property name="maxWaitMillis" value="10000"/>
+		<property name="logAbandoned" value="true"/>
+		<property name="removeAbandonedOnBorrow" value="true"/>
+		<property name="removeAbandonedOnMaintenance" value="true"/>
+		<property name="removeAbandonedTimeout" value="30"/>
+	</bean>	
+	<bean id="wechatJdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<constructor-arg ref="WechatDataSource" />
+	</bean>	
+	
+	<bean id="salesDataSource" class="org.apache.commons.dbcp2.BasicDataSource">
+		<property name="driverClassName"><value>${core2.jdbc.driver}</value></property>
+		<property name="url"><value>${core2.jdbc.jdbcurl}</value></property>
+		<property name="username"><value>${core2.jdbc.username}</value></property>
+		<property name="password"><value>${core2.jdbc.password}</value></property>
+		<property name="initialSize" value="2"/>
+		<property name="maxTotal" value="100"/>
+		<property name="maxIdle" value="5"/>
+		<property name="maxWaitMillis" value="10000"/>
+		<property name="logAbandoned" value="true"/>
+		<property name="removeAbandonedOnBorrow" value="true"/>
+		<property name="removeAbandonedOnMaintenance" value="true"/>
+		<property name="removeAbandonedTimeout" value="30"/>
+	</bean>
+	<bean id="salesJdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<constructor-arg ref="salesDataSource" />
+	</bean> 
+	
+	<bean id="wechatTransactionManager"  class="org.springframework.jdbc.datasource.DataSourceTransactionManager">  
+    	<property name="dataSource" ref="WechatDataSource" /> 
+    	 <qualifier value="wechat"/> 
+	</bean>  		
+	<bean id="salesTransactionManager"  class="org.springframework.jdbc.datasource.DataSourceTransactionManager">  
+    	<property name="dataSource" ref="salesDataSource" /> 
+    	<qualifier value="sales"/> 
+	</bean>
+		
+	<!-- 事务控制   -->  
+	<tx:annotation-driven transaction-manager="wechatTransactionManager" />  	
+	<tx:annotation-driven transaction-manager="salesTransactionManager" />
+	 	
+</beans>
